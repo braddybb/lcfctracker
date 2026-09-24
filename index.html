@@ -18,6 +18,7 @@
     --chalk-dim:    #C9D6CD;
     --amber:        #E8A33D;
     --clay:         #C1502E;
+    --green:        #2E7D5B;
     --muted:        #7FA491;
     --radius: 3px;
   }
@@ -84,15 +85,39 @@
   .tag.game { background: var(--amber); color: var(--pitch-deep); }
   .tag.training { background: var(--pitch-line); color: var(--chalk); }
 
-  /* ---- rsvp buttons ---- */
-  .rsvp-row { display: flex; gap: 8px; margin-top: 12px; }
-  .rsvp-row button {
-    flex: 1; padding: 9px 0; border-radius: var(--radius); border: 1px solid var(--pitch-line);
-    background: transparent; color: var(--chalk-dim); font-weight: 600; cursor: pointer; font-size: 13px;
+  /* ---- fixture hero / compact ---- */
+  .fixture-hero { border: 1.5px solid var(--amber); }
+  .fixture-hero h3 { font-size: 18px; }
+  .fixture-row-compact {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 16px; border: 1px solid var(--pitch-line); border-radius: var(--radius);
+    margin-bottom: 8px; cursor: pointer; background: var(--pitch-deep);
   }
-  .rsvp-row button.selected.available   { background: #2E7D5B; border-color: #2E7D5B; color: var(--chalk); }
-  .rsvp-row button.selected.maybe       { background: var(--amber); border-color: var(--amber); color: var(--pitch-deep); }
-  .rsvp-row button.selected.unavailable { background: var(--clay); border-color: var(--clay); color: var(--chalk); }
+  .fixture-row-compact:hover { border-color: var(--amber); }
+  .frc-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .frc-title { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .frc-date { font-size: 11.5px; color: var(--chalk-dim); white-space: nowrap; }
+  .frc-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .frc-chevron { color: var(--chalk-dim); font-size: 12px; transition: transform 0.15s ease; }
+  .frc-chevron.open { transform: rotate(90deg); }
+  .fixture-expanded { margin: -4px 0 8px; padding: 14px 16px 16px; border: 1px solid var(--pitch-line); border-top: none; border-radius: 0 0 var(--radius) var(--radius); background: var(--pitch-deep); }
+
+  /* ---- segmented rsvp control ---- */
+  .segmented { display: flex; border: 1px solid var(--pitch-line); border-radius: 20px; overflow: hidden; margin-top: 12px; }
+  .segmented button {
+    flex: 1; border: none; background: transparent; padding: 9px 0; color: var(--chalk-dim);
+    font-weight: 600; font-size: 12.5px; cursor: pointer; border-right: 1px solid var(--pitch-line);
+  }
+  .segmented button:last-child { border-right: none; }
+  .segmented button.selected.available   { background: var(--green); color: var(--chalk); }
+  .segmented button.selected.maybe       { background: var(--amber); color: var(--pitch-deep); }
+  .segmented button.selected.unavailable { background: var(--clay); color: var(--chalk); }
+  .segmented.large button { padding: 13px 0; font-size: 14px; }
+
+  .cutoff-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.3px; margin-top: 10px; }
+  .cutoff-label.ok   { color: var(--chalk-dim); }
+  .cutoff-label.warn { color: var(--amber); }
+  .cutoff-label.over { color: var(--clay); }
 
   .attend-summary { display: flex; gap: 14px; margin-top: 10px; font-size: 12.5px; color: var(--chalk-dim); }
   .attend-summary b { color: var(--chalk); }
@@ -131,17 +156,62 @@
 
   .empty { color: var(--chalk-dim); font-size: 13px; padding: 20px 0; text-align: center; }
 
-  /* ---- squad builder ---- */
+  /* ---- squad: named list ---- */
   .squad-pick { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px dotted var(--pitch-line); }
   .squad-pick input { width: auto; margin: 0; }
-  .squad-pick.unavailable { opacity: 0.4; }
+  .squad-pick.unavailable-row { opacity: 0.4; }
+
+  /* ---- squad: pitch ---- */
+  .pitch-wrap {
+    position: relative; width: 100%; padding-top: 128%;
+    background:
+      radial-gradient(circle at 50% 68%, transparent 0 15%, transparent 15%),
+      var(--pitch);
+    border: 2px solid rgba(245,243,236,0.35); border-radius: 8px; overflow: hidden; margin: 14px 0;
+  }
+  .pitch-wrap::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 34%; height: 1px; background: rgba(245,243,236,0.25);
+  }
+  .pitch-wrap::after {
+    content: ""; position: absolute; left: 50%; top: 34%; width: 90px; height: 90px; margin-left: -45px; margin-top: -45px;
+    border: 1px solid rgba(245,243,236,0.25); border-radius: 50%;
+  }
+  .pitch-slot {
+    position: absolute; width: 54px; height: 54px; margin-left: -27px; margin-top: -27px;
+    border-radius: 50%; border: 2px dashed rgba(245,243,236,0.4);
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    font-size: 10.5px; font-weight: 700; text-align: center; line-height: 1.15;
+    cursor: pointer; background: rgba(0,0,0,0.18); color: var(--chalk-dim); padding: 2px; user-select: none;
+  }
+  .pitch-slot .slot-label { font-size: 9px; opacity: 0.7; letter-spacing: 0.3px; }
+  .pitch-slot.filled { border-style: solid; border-color: var(--amber); background: var(--amber); color: var(--pitch-deep); }
+  .pitch-slot.active-pick { border-color: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,0.25); }
+  .pitch-hint { font-size: 12px; color: var(--chalk-dim); text-align: center; margin-top: -4px; margin-bottom: 6px; min-height: 16px; }
+
+  .bench-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .bench-chip {
+    padding: 7px 12px; border: 1px solid var(--pitch-line); border-radius: 20px; font-size: 12.5px;
+    cursor: pointer; background: var(--pitch-deep); color: var(--chalk);
+  }
+  .bench-chip:hover { border-color: var(--amber); }
+  .bench-chip.unavailable-chip { opacity: 0.4; }
+  .bench-label { font-size: 11.5px; color: var(--chalk-dim); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; }
 
   /* ---- stats ---- */
+  .streak-line { font-size: 14px; margin-bottom: 4px; }
+  .streak-line b { color: var(--amber); }
+  .streak-dots { display: flex; gap: 5px; margin-top: 8px; }
+  .streak-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pitch-line); }
+  .streak-dot.available { background: var(--green); }
+  .streak-dot.maybe { background: var(--amber); }
+  .streak-dot.unavailable { background: var(--clay); }
   .stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .stat-name { width: 120px; font-size: 13px; flex-shrink: 0; }
+  .stat-name { width: 120px; font-size: 13px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar-track { flex: 1; height: 8px; background: var(--pitch); border-radius: 4px; overflow: hidden; }
   .bar-fill { height: 100%; background: var(--amber); }
   .stat-pct { width: 40px; text-align: right; font-size: 12.5px; color: var(--chalk-dim); }
+  .stats-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .stats-head h3 { margin: 0; }
 
   @media (prefers-reduced-motion: no-preference) {
     .card { transition: border-color 0.15s ease; }
@@ -243,8 +313,12 @@
 
   <!-- STATS -->
   <section id="view-stats" class="view">
+    <div id="myStreak"></div>
     <div class="card">
-      <h3 style="margin-bottom:14px;">Availability rate, season to date</h3>
+      <div class="stats-head">
+        <h3>Availability rate, season to date</h3>
+        <button class="ghost" id="btnExportCsv" style="display:none; padding:6px 12px; font-size:12.5px;">Export CSV</button>
+      </div>
       <div id="statsList"></div>
     </div>
   </section>
@@ -252,9 +326,9 @@
 
 <script>
 // ============================================================
-// CONFIG — fill these in from your Supabase project settings
-// (Project Settings > API). The anon key is safe to expose client-side;
-// row-level security in schema.sql controls what it can actually do.
+// CONFIG — from your Supabase project settings (Project Settings > API).
+// The anon/publishable key is safe to expose client-side; row-level
+// security in schema.sql controls what it can actually do.
 // ============================================================
 const SUPABASE_URL = "https://bshkctvgcvkyaepkrqgm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_gR5ryLtv5VI91tHQ_DY_hg_OnYoSGxi";
@@ -266,6 +340,25 @@ let players = [];       // full roster
 let events = [];        // all fixtures
 let rsvps = [];         // all rsvps
 let squads = [];        // all squad rows
+
+let expandedEvents = new Set();   // compact fixture rows currently expanded
+let activeSlotId = null;          // pitch slot awaiting a player assignment
+let currentSquadEventId = null;   // which fixture the squad view is showing
+
+// standard 4-4-2 layout, percentage positions on the pitch
+const FORMATION = [
+  { id: "gk",  label: "GK", x: 50, y: 91 },
+  { id: "lb",  label: "LB", x: 14, y: 73 },
+  { id: "lcb", label: "CB", x: 37, y: 77 },
+  { id: "rcb", label: "CB", x: 63, y: 77 },
+  { id: "rb",  label: "RB", x: 86, y: 73 },
+  { id: "lm",  label: "LM", x: 12, y: 47 },
+  { id: "lcm", label: "CM", x: 38, y: 51 },
+  { id: "rcm", label: "CM", x: 62, y: 51 },
+  { id: "rm",  label: "RM", x: 88, y: 47 },
+  { id: "lf",  label: "FW", x: 35, y: 19 },
+  { id: "rf",  label: "FW", x: 65, y: 19 },
+];
 
 // ---------- auth ----------
 document.getElementById("btnSignIn").onclick = async () => {
@@ -323,6 +416,7 @@ async function boot() {
     document.getElementById("coachNewEvent").style.display = "block";
     document.getElementById("coachNewPlayer").style.display = "block";
     document.getElementById("tabSquad").style.display = "block";
+    document.getElementById("btnExportCsv").style.display = "inline-block";
   }
 
   await refreshAll();
@@ -355,7 +449,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn => {
   };
 });
 
-// ---------- fixtures ----------
+// ---------- shared helpers ----------
 function fmtDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -363,49 +457,115 @@ function fmtDate(iso) {
          " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+function fmtDateShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+}
+
+function cutoffInfo(iso) {
+  if (!iso) return null;
+  const diffMs = new Date(iso).getTime() - Date.now();
+  if (diffMs <= 0) return { text: "RSVP cutoff has passed", cls: "over" };
+  const hours = diffMs / 3600000;
+  const d = Math.floor(hours / 24);
+  const h = Math.floor(hours % 24);
+  const text = d > 0 ? `${d}d ${h}h to respond` : `${h}h to respond`;
+  return { text, cls: hours < 24 ? "warn" : "ok" };
+}
+
+function segmentedHTML(ev, myStatus, large) {
+  return `
+    <div class="segmented ${large ? "large" : ""}">
+      <button data-ev="${ev.id}" data-status="available" class="${myStatus === "available" ? "selected available" : ""}">Available</button>
+      <button data-ev="${ev.id}" data-status="maybe" class="${myStatus === "maybe" ? "selected maybe" : ""}">Maybe</button>
+      <button data-ev="${ev.id}" data-status="unavailable" class="${myStatus === "unavailable" ? "selected unavailable" : ""}">Can't make it</button>
+    </div>`;
+}
+
+// ---------- fixtures ----------
+function fixtureBodyHTML(ev, large) {
+  const myRsvp = rsvps.find(r => r.event_id === ev.id && r.player_id === me.id);
+  const eventRsvps = rsvps.filter(r => r.event_id === ev.id);
+  const counts = { available: 0, maybe: 0, unavailable: 0 };
+  eventRsvps.forEach(r => counts[r.status]++);
+  const pending = players.length - eventRsvps.length;
+  const cutoff = cutoffInfo(ev.rsvp_cutoff);
+
+  const rosterLines = players.map(p => {
+    const r = eventRsvps.find(x => x.player_id === p.id);
+    const status = r ? r.status : "pending";
+    return `<div class="player-line"><span>${p.full_name}</span><span class="status-pill ${status}">${status}</span></div>`;
+  }).join("");
+
+  return `
+    <div class="meta">${fmtDate(ev.event_date)}${ev.location ? " · " + ev.location : ""}</div>
+    ${segmentedHTML(ev, myRsvp?.status, large)}
+    ${cutoff ? `<div class="cutoff-label ${cutoff.cls}">${cutoff.text}</div>` : ""}
+    <div class="attend-summary">
+      <span><b>${counts.available}</b> in</span>
+      <span><b>${counts.maybe}</b> maybe</span>
+      <span><b>${counts.unavailable}</b> out</span>
+      <span><b>${pending}</b> no reply</span>
+    </div>
+    <details class="roster-detail"><summary>View full list</summary>${rosterLines}</details>
+  `;
+}
+
 function renderFixtures() {
   const el = document.getElementById("fixturesList");
-  const upcoming = events.filter(e => new Date(e.event_date) >= new Date(Date.now() - 1000*60*60*6));
+  const upcoming = events
+    .filter(e => new Date(e.event_date) >= new Date(Date.now() - 1000 * 60 * 60 * 6))
+    .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+
   if (upcoming.length === 0) {
     el.innerHTML = `<div class="empty">No fixtures yet.</div>`;
     return;
   }
-  el.innerHTML = upcoming.map(ev => {
+
+  const [heroEv, ...restEv] = upcoming;
+
+  const heroHTML = `
+    <div class="card fixture-hero">
+      <span class="tag ${heroEv.type}">${heroEv.type}</span>
+      <h3 style="display:inline;">${heroEv.title}</h3>
+      ${fixtureBodyHTML(heroEv, true)}
+    </div>
+  `;
+
+  const restHTML = restEv.map(ev => {
     const myRsvp = rsvps.find(r => r.event_id === ev.id && r.player_id === me.id);
-    const eventRsvps = rsvps.filter(r => r.event_id === ev.id);
-    const counts = { available: 0, maybe: 0, unavailable: 0 };
-    eventRsvps.forEach(r => counts[r.status]++);
-    const pending = players.length - eventRsvps.length;
-
-    const rosterLines = players.map(p => {
-      const r = eventRsvps.find(x => x.player_id === p.id);
-      const status = r ? r.status : "pending";
-      return `<div class="player-line"><span>${p.full_name}</span><span class="status-pill ${status}">${status}</span></div>`;
-    }).join("");
-
+    const isOpen = expandedEvents.has(ev.id);
     return `
-      <div class="card">
-        <span class="tag ${ev.type}">${ev.type}</span>
-        <h3 style="display:inline;">${ev.title}</h3>
-        <div class="meta">${fmtDate(ev.event_date)}${ev.location ? " · " + ev.location : ""}${ev.rsvp_cutoff ? " · RSVP by " + fmtDate(ev.rsvp_cutoff) : ""}</div>
-        <div class="rsvp-row">
-          <button data-ev="${ev.id}" data-status="available" class="${myRsvp?.status === "available" ? "selected available" : ""}">Available</button>
-          <button data-ev="${ev.id}" data-status="maybe" class="${myRsvp?.status === "maybe" ? "selected maybe" : ""}">Maybe</button>
-          <button data-ev="${ev.id}" data-status="unavailable" class="${myRsvp?.status === "unavailable" ? "selected unavailable" : ""}">Can't make it</button>
+      <div>
+        <div class="fixture-row-compact" data-toggle="${ev.id}">
+          <div class="frc-left">
+            <span class="tag ${ev.type}">${ev.type}</span>
+            <span class="frc-title">${ev.title}</span>
+          </div>
+          <div class="frc-right">
+            <span class="frc-date">${fmtDateShort(ev.event_date)}</span>
+            <span class="status-pill ${myRsvp?.status || "pending"}">${myRsvp?.status || "no reply"}</span>
+            <span class="frc-chevron ${isOpen ? "open" : ""}">&#9656;</span>
+          </div>
         </div>
-        <div class="attend-summary">
-          <span><b>${counts.available}</b> in</span>
-          <span><b>${counts.maybe}</b> maybe</span>
-          <span><b>${counts.unavailable}</b> out</span>
-          <span><b>${pending}</b> no reply</span>
-        </div>
-        <details class="roster-detail"><summary>View full list</summary>${rosterLines}</details>
+        ${isOpen ? `<div class="fixture-expanded">${fixtureBodyHTML(ev, false)}</div>` : ""}
       </div>
     `;
   }).join("");
 
-  el.querySelectorAll(".rsvp-row button").forEach(btn => {
+  el.innerHTML = heroHTML + restHTML;
+
+  el.querySelectorAll(".segmented button").forEach(btn => {
     btn.onclick = () => setRsvp(btn.dataset.ev, btn.dataset.status);
+  });
+  el.querySelectorAll("[data-toggle]").forEach(row => {
+    row.onclick = () => {
+      const id = row.dataset.toggle;
+      if (expandedEvents.has(id)) expandedEvents.delete(id);
+      else expandedEvents.add(id);
+      renderFixtures();
+    };
   });
 }
 
@@ -465,43 +625,184 @@ document.getElementById("btnAddPlayer")?.addEventListener("click", async () => {
 function renderSquadPicker() {
   if (!me?.is_coach) return;
   const sel = document.getElementById("squadEventPick");
-  const upcoming = events.filter(e => new Date(e.event_date) >= new Date(Date.now() - 1000*60*60*6));
-  sel.innerHTML = upcoming.map(e => `<option value="${e.id}">${e.title} — ${fmtDate(e.event_date)}</option>`).join("");
-  sel.onchange = () => renderSquadForEvent(sel.value);
-  if (upcoming.length) renderSquadForEvent(sel.value);
-  else document.getElementById("squadPicker").innerHTML = `<div class="empty">No fixtures yet.</div>`;
+  const upcoming = events
+    .filter(e => new Date(e.event_date) >= new Date(Date.now() - 1000 * 60 * 60 * 6))
+    .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+  sel.innerHTML = upcoming.map(e => `<option value="${e.id}">${e.title} — ${fmtDateShort(e.event_date)}</option>`).join("");
+  sel.onchange = () => { activeSlotId = null; renderSquadForEvent(sel.value); };
+  if (upcoming.length) {
+    if (!currentSquadEventId || !upcoming.find(e => e.id === currentSquadEventId)) {
+      currentSquadEventId = sel.value;
+    } else {
+      sel.value = currentSquadEventId;
+    }
+    renderSquadForEvent(sel.value);
+  } else {
+    document.getElementById("squadPicker").innerHTML = `<div class="empty">No fixtures yet.</div>`;
+  }
+}
+
+function playerAbbrev(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 8);
+  return parts[0] + " " + parts[parts.length - 1][0] + ".";
 }
 
 function renderSquadForEvent(eventId) {
+  currentSquadEventId = eventId;
   const squad = squads.find(s => s.event_id === eventId);
-  const selected = new Set(squad?.selected_player_ids || []);
+  const namedIds = new Set(squad?.selected_player_ids || []);
+  const positions = { ...(squad?.positions || {}) };
   const el = document.getElementById("squadPicker");
-  el.innerHTML = `<div class="card">` + players.map(p => {
-    const r = rsvps.find(x => x.event_id === eventId && x.player_id === p.id);
-    const status = r ? r.status : "pending";
-    const unavailable = status === "unavailable";
-    return `
-      <label class="squad-pick ${unavailable ? "unavailable" : ""}">
-        <input type="checkbox" data-pid="${p.id}" ${selected.has(p.id) ? "checked" : ""} />
-        <span style="flex:1;">${p.full_name}</span>
-        <span class="status-pill ${status}">${status}</span>
-      </label>`;
-  }).join("") + `<button class="primary" id="btnSaveSquad" style="margin-top:14px;">Save squad</button></div>`;
+
+  // --- named squad checklist ---
+  const checklistHTML = `<div class="card">
+    <h3 style="margin-bottom:8px;">Name the squad</h3>
+    ${players.map(p => {
+      const r = rsvps.find(x => x.event_id === eventId && x.player_id === p.id);
+      const status = r ? r.status : "pending";
+      const unavailable = status === "unavailable";
+      return `
+        <label class="squad-pick ${unavailable ? "unavailable-row" : ""}">
+          <input type="checkbox" data-pid="${p.id}" ${namedIds.has(p.id) ? "checked" : ""} />
+          <span style="flex:1;">${p.full_name}</span>
+          <span class="status-pill ${status}">${status}</span>
+        </label>`;
+    }).join("")}
+    <button class="primary" id="btnSaveSquad" style="margin-top:14px;">Save named squad</button>
+  </div>`;
+
+  // --- pitch (only once players are named) ---
+  let pitchHTML = "";
+  if (namedIds.size > 0) {
+    const namedPlayers = players.filter(p => namedIds.has(p.id));
+    const placedIds = new Set(Object.values(positions).filter(Boolean));
+    const benchPlayers = namedPlayers.filter(p => !placedIds.has(p.id));
+
+    const slotsHTML = FORMATION.map(slot => {
+      const pid = positions[slot.id];
+      const player = pid ? players.find(p => p.id === pid) : null;
+      const filled = !!player;
+      const active = activeSlotId === slot.id;
+      return `
+        <div class="pitch-slot ${filled ? "filled" : ""} ${active ? "active-pick" : ""}" data-slot="${slot.id}"
+             style="left:${slot.x}%; top:${slot.y}%;">
+          ${filled ? playerAbbrev(player.full_name) : `<span class="slot-label">${slot.label}</span>`}
+        </div>`;
+    }).join("");
+
+    const hint = activeSlotId
+      ? "Tap a player below to place them"
+      : "Tap an empty spot, then tap a player — or just tap a player to auto-place them";
+
+    const benchHTML = benchPlayers.map(p => {
+      const r = rsvps.find(x => x.event_id === eventId && x.player_id === p.id);
+      const status = r ? r.status : "pending";
+      return `<div class="bench-chip ${status === "unavailable" ? "unavailable-chip" : ""}" data-pool="${p.id}">${p.full_name}</div>`;
+    }).join("");
+
+    pitchHTML = `
+      <div class="card">
+        <h3>Starting XI</h3>
+        <div class="pitch-hint">${hint}</div>
+        <div class="pitch-wrap">${slotsHTML}</div>
+        <div class="bench-label">Named squad, not yet placed</div>
+        <div class="bench-pool">${benchHTML || '<span class="meta">Everyone named is on the pitch.</span>'}</div>
+      </div>
+    `;
+  }
+
+  el.innerHTML = checklistHTML + pitchHTML;
 
   document.getElementById("btnSaveSquad").onclick = async () => {
     const ids = [...el.querySelectorAll("input[type=checkbox]:checked")].map(cb => cb.dataset.pid);
+    const keptPositions = {};
+    Object.entries(positions).forEach(([slot, pid]) => {
+      if (ids.includes(pid)) keptPositions[slot] = pid;
+    });
     await sb.from("squads").upsert(
-      { event_id: eventId, selected_player_ids: ids, updated_at: new Date().toISOString() },
+      { event_id: eventId, selected_player_ids: ids, positions: keptPositions, updated_at: new Date().toISOString() },
       { onConflict: "event_id" }
     );
+    activeSlotId = null;
     await refreshAll();
   };
+
+  el.querySelectorAll(".pitch-slot").forEach(slotEl => {
+    slotEl.onclick = () => {
+      const slotId = slotEl.dataset.slot;
+      if (positions[slotId]) {
+        // filled slot: tap to send that player back to the bench
+        savePositions(eventId, namedIds, positions, slotId, null);
+      } else {
+        activeSlotId = (activeSlotId === slotId) ? null : slotId;
+        renderSquadForEvent(eventId);
+      }
+    };
+  });
+
+  el.querySelectorAll(".bench-chip").forEach(chipEl => {
+    chipEl.onclick = () => {
+      const pid = chipEl.dataset.pool;
+      let slotId = activeSlotId;
+      if (!slotId) {
+        const emptySlot = FORMATION.find(s => !positions[s.id]);
+        slotId = emptySlot?.id;
+      }
+      if (!slotId) return; // pitch is full
+      savePositions(eventId, namedIds, positions, slotId, pid);
+    };
+  });
+}
+
+async function savePositions(eventId, namedIds, positions, slotId, playerId) {
+  const next = { ...positions };
+  if (playerId) next[slotId] = playerId;
+  else delete next[slotId];
+  activeSlotId = null;
+  await sb.from("squads").upsert(
+    { event_id: eventId, selected_player_ids: [...namedIds], positions: next, updated_at: new Date().toISOString() },
+    { onConflict: "event_id" }
+  );
+  await refreshAll();
 }
 
 // ---------- stats ----------
+function renderMyStreak() {
+  const el = document.getElementById("myStreak");
+  const pastEvents = events
+    .filter(e => new Date(e.event_date) < new Date())
+    .sort((a, b) => new Date(b.event_date) - new Date(a.event_date))
+    .slice(0, 5);
+
+  if (pastEvents.length === 0) {
+    el.innerHTML = "";
+    return;
+  }
+
+  const dots = pastEvents.slice().reverse().map(ev => {
+    const r = rsvps.find(x => x.event_id === ev.id && x.player_id === me.id);
+    const status = r ? r.status : "pending";
+    return `<div class="streak-dot ${status}" title="${ev.title}: ${status}"></div>`;
+  }).join("");
+
+  const availableCount = pastEvents.filter(ev => {
+    const r = rsvps.find(x => x.event_id === ev.id && x.player_id === me.id);
+    return r?.status === "available";
+  }).length;
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="streak-line">You made <b>${availableCount} of your last ${pastEvents.length}</b> sessions</div>
+      <div class="streak-dots">${dots}</div>
+    </div>
+  `;
+}
+
 function renderStats() {
+  renderMyStreak();
   const el = document.getElementById("statsList");
-  const pastOrAll = events; // keep simple: rate across all fixtures posted so far
+  const pastOrAll = events;
   if (pastOrAll.length === 0 || players.length === 0) {
     el.innerHTML = `<div class="empty">No data yet.</div>`;
     return;
@@ -521,6 +822,26 @@ function renderStats() {
     </div>
   `).join("");
 }
+
+document.getElementById("btnExportCsv")?.addEventListener("click", () => {
+  const sortedEvents = [...events].sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+  const header = ["Player", ...sortedEvents.map(e => `${e.title} (${fmtDateShort(e.event_date)})`)];
+  const rows = players.map(p => {
+    const cells = sortedEvents.map(ev => {
+      const r = rsvps.find(x => x.event_id === ev.id && x.player_id === p.id);
+      return r ? r.status : "no reply";
+    });
+    return [p.full_name, ...cells];
+  });
+  const csv = [header, ...rows].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "teamsheet-attendance.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});
 
 // ---------- go ----------
 boot();
