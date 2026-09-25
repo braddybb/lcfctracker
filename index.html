@@ -293,6 +293,8 @@
           <input id="evCutoff" type="datetime-local" />
         </div>
       </div>
+      <label>Season / competition (optional)</label>
+      <input id="evSeason" placeholder="e.g. Winter 2026, or Damian Miles Cup" />
       <button class="primary" id="btnAddEvent">Add fixture</button>
     </div>
     <div id="fixturesList"></div>
@@ -333,9 +335,10 @@
     <div id="myStreak"></div>
     <div class="card">
       <div class="stats-head">
-        <h3>Availability rate, season to date</h3>
+        <h3>Availability rate</h3>
         <button class="ghost" id="btnExportCsv" style="display:none; padding:6px 12px; font-size:12.5px;">Export CSV</button>
       </div>
+      <select id="statsSeasonFilter" style="margin-bottom:14px;"></select>
       <div id="statsList"></div>
     </div>
   </section>
@@ -517,7 +520,7 @@ function fixtureBodyHTML(ev, large) {
   }).join("");
 
   return `
-    <div class="meta">${fmtDate(ev.event_date)}${ev.location ? " · " + ev.location : ""}</div>
+    <div class="meta">${fmtDate(ev.event_date)}${ev.location ? " · " + ev.location : ""}${ev.season ? " · " + ev.season : ""}</div>
     ${segmentedHTML(ev, myRsvp?.status, large)}
     ${cutoff ? `<div class="cutoff-label ${cutoff.cls}">${cutoff.text}</div>` : ""}
     <div class="attend-summary">
@@ -601,29 +604,55 @@ document.getElementById("btnAddEvent")?.addEventListener("click", async () => {
   const date = document.getElementById("evDate").value;
   const location = document.getElementById("evLocation").value.trim();
   const cutoff = document.getElementById("evCutoff").value;
+  const season = document.getElementById("evSeason").value.trim();
   if (!title || !date) { alert("Title and date are required."); return; }
   await sb.from("events").insert({
     type, title, location: location || null,
     event_date: new Date(date).toISOString(),
     rsvp_cutoff: cutoff ? new Date(cutoff).toISOString() : null,
+    season: season || null,
     created_by: me.id,
   });
   document.getElementById("evTitle").value = "";
   document.getElementById("evLocation").value = "";
+  document.getElementById("evSeason").value = "";
   await refreshAll();
 });
 
 // ---------- roster ----------
 function renderRoster() {
   const el = document.getElementById("rosterList");
-  el.innerHTML = players.map(p => `
+  const coachCount = players.filter(p => p.is_coach).length;
+  el.innerHTML = players.map(p => {
+    const isSelf = p.id === me.id;
+    const lastCoachGuard = p.is_coach && coachCount <= 1;
+    const toggleBtn = me.is_coach
+      ? `<button class="ghost" data-toggle-coach="${p.id}" data-currently="${p.is_coach}"
+           style="padding:4px 10px; font-size:11.5px; ${lastCoachGuard ? "opacity:.35; cursor:not-allowed;" : ""}"
+           ${lastCoachGuard ? "disabled title=\"At least one coach is required\"" : ""}>
+           ${p.is_coach ? "Remove coach" : "Make coach"}
+         </button>`
+      : "";
+    return `
     <div class="card" style="padding:12px 18px;">
-      <div class="player-line" style="border:none;">
-        <span>${p.full_name}${p.is_coach ? " · Coach" : ""}</span>
-        <span class="meta">${p.position || ""}</span>
+      <div class="player-line" style="border:none; align-items:center;">
+        <span>${p.full_name}${p.is_coach ? " · Coach" : ""}${isSelf ? " (you)" : ""}</span>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span class="meta">${p.position || ""}</span>
+          ${toggleBtn}
+        </span>
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll("[data-toggle-coach]").forEach(btn => {
+    btn.onclick = async () => {
+      const pid = btn.dataset.toggleCoach;
+      const currently = btn.dataset.currently === "true";
+      await sb.from("profiles").update({ is_coach: !currently }).eq("id", pid);
+      await refreshAll();
+    };
+  });
 }
 
 document.getElementById("btnAddPlayer")?.addEventListener("click", async () => {
@@ -817,18 +846,32 @@ function renderMyStreak() {
   `;
 }
 
+let statsSeasonValue = "__all__";
+
 function renderStats() {
   renderMyStreak();
+
+  const filterEl = document.getElementById("statsSeasonFilter");
+  const seasons = [...new Set(events.map(e => e.season).filter(Boolean))].sort();
+  const optionsHTML = `<option value="__all__">All seasons</option>` +
+    seasons.map(s => `<option value="${s}">${s}</option>`).join("");
+  filterEl.innerHTML = optionsHTML;
+  filterEl.value = seasons.includes(statsSeasonValue) || statsSeasonValue === "__all__" ? statsSeasonValue : "__all__";
+  filterEl.style.display = seasons.length ? "block" : "none";
+  filterEl.onchange = () => { statsSeasonValue = filterEl.value; renderStats(); };
+
   const el = document.getElementById("statsList");
-  const pastOrAll = events;
-  if (pastOrAll.length === 0 || players.length === 0) {
+  const scopedEvents = statsSeasonValue === "__all__" ? events : events.filter(e => e.season === statsSeasonValue);
+
+  if (scopedEvents.length === 0 || players.length === 0) {
     el.innerHTML = `<div class="empty">No data yet.</div>`;
     return;
   }
+  const scopedIds = new Set(scopedEvents.map(e => e.id));
   const rows = players.map(p => {
-    const mine = rsvps.filter(r => r.player_id === p.id);
+    const mine = rsvps.filter(r => r.player_id === p.id && scopedIds.has(r.event_id));
     const available = mine.filter(r => r.status === "available").length;
-    const pct = pastOrAll.length ? Math.round((available / pastOrAll.length) * 100) : 0;
+    const pct = scopedEvents.length ? Math.round((available / scopedEvents.length) * 100) : 0;
     return { name: p.full_name, pct };
   }).sort((a, b) => b.pct - a.pct);
 
