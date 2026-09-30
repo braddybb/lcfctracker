@@ -316,6 +316,8 @@
       </div>
       <label>Position (optional)</label>
       <input id="plPosition" />
+      <label>Temporary password (optional — leave blank to have them create their own login)</label>
+      <input id="plPassword" type="text" placeholder="e.g. a simple starter password, min 6 characters" />
       <button class="primary" id="btnAddPlayer">Add to roster</button>
     </div>
     <div id="rosterList"></div>
@@ -650,18 +652,36 @@ function renderRoster() {
            Remove
          </button>`
       : "";
+    const needsLogin = me.is_coach && !p.auth_user_id;
+    const createLoginBtn = needsLogin
+      ? `<button class="ghost" data-create-login="${p.id}" data-email="${p.email}" data-name="${p.full_name}"
+           style="padding:4px 10px; font-size:11.5px;">Create login</button>`
+      : "";
     return `
     <div class="card" style="padding:12px 18px;">
       <div class="player-line" style="border:none; align-items:center;">
-        <span>${p.full_name}${p.is_coach ? " · Coach" : ""}${isSelf ? " (you)" : ""}</span>
+        <span>${p.full_name}${p.is_coach ? " · Coach" : ""}${isSelf ? " (you)" : ""}${needsLogin ? ` <span class="status-pill pending">no login</span>` : ""}</span>
         <span style="display:flex; align-items:center; gap:10px;">
           <span class="meta">${p.position || ""}</span>
+          ${createLoginBtn}
           ${toggleBtn}
           ${removeBtn}
         </span>
       </div>
     </div>`;
   }).join("");
+
+  el.querySelectorAll("[data-create-login]").forEach(btn => {
+    btn.onclick = async () => {
+      const password = prompt(`Set a temporary password for ${btn.dataset.name} (min 6 characters). Tell them this so they can sign in and change it.`);
+      if (!password) return;
+      if (password.length < 6) { alert("Needs at least 6 characters."); return; }
+      const result = await createAccountViaEdgeFunction({ email: btn.dataset.email, password });
+      if (!result.ok) { alert(result.error); return; }
+      alert(`Login created.\n\nEmail: ${btn.dataset.email}\nPassword: ${password}\n\nPass these on to ${btn.dataset.name}.`);
+      await refreshAll();
+    };
+  });
 
   el.querySelectorAll("[data-remove-player]").forEach(btn => {
     btn.onclick = async () => {
@@ -702,14 +722,40 @@ document.getElementById("btnAddPlayer")?.addEventListener("click", async () => {
   const full_name = document.getElementById("plName").value.trim();
   const email = document.getElementById("plEmail").value.trim();
   const position = document.getElementById("plPosition").value.trim();
+  const password = document.getElementById("plPassword").value.trim();
   if (!full_name || !email) { alert("Name and email are required."); return; }
-  const { error } = await sb.from("profiles").insert({ full_name, email, position: position || null });
-  if (error) { alert(error.message); return; }
+
+  if (password) {
+    if (password.length < 6) { alert("Password needs at least 6 characters."); return; }
+    const result = await createAccountViaEdgeFunction({ email, password, full_name, position: position || null });
+    if (!result.ok) { alert(result.error); return; }
+  } else {
+    const { error } = await sb.from("profiles").insert({ full_name, email, position: position || null });
+    if (error) { alert(error.message); return; }
+  }
+
   document.getElementById("plName").value = "";
   document.getElementById("plEmail").value = "";
   document.getElementById("plPosition").value = "";
+  document.getElementById("plPassword").value = "";
   await refreshAll();
 });
+
+async function createAccountViaEdgeFunction(payload) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-account`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (!res.ok) return { ok: false, error: result.error || "Couldn't create account." };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
 
 // ---------- squad builder ----------
 function renderSquadPicker() {
