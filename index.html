@@ -530,6 +530,7 @@ function fixtureBodyHTML(ev, large) {
       <span><b>${pending}</b> no reply</span>
     </div>
     <details class="roster-detail"><summary>View full list</summary>${rosterLines}</details>
+    ${me.is_coach ? `<button class="ghost" data-delete-event="${ev.id}" style="margin-top:12px; padding:6px 12px; font-size:12px; color:var(--clay); border-color:var(--clay);">Delete fixture</button>` : ""}
   `;
 }
 
@@ -579,6 +580,15 @@ function renderFixtures() {
 
   el.querySelectorAll(".segmented button").forEach(btn => {
     btn.onclick = () => setRsvp(btn.dataset.ev, btn.dataset.status);
+  });
+  el.querySelectorAll("[data-delete-event]").forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const ev = events.find(x => x.id === btn.dataset.deleteEvent);
+      if (!confirm(`Delete "${ev?.title}"? This removes all RSVPs and squad selections for it too.`)) return;
+      await sb.from("events").delete().eq("id", btn.dataset.deleteEvent);
+      await refreshAll();
+    };
   });
   el.querySelectorAll("[data-toggle]").forEach(row => {
     row.onclick = () => {
@@ -633,6 +643,13 @@ function renderRoster() {
            ${p.is_coach ? "Remove coach" : "Make coach"}
          </button>`
       : "";
+    const removeBtn = me.is_coach
+      ? `<button class="ghost" data-remove-player="${p.id}"
+           style="padding:4px 10px; font-size:11.5px; color:var(--clay); border-color:var(--clay); ${lastCoachGuard ? "opacity:.35; cursor:not-allowed;" : ""}"
+           ${lastCoachGuard ? "disabled title=\"At least one coach is required\"" : ""}>
+           Remove
+         </button>`
+      : "";
     return `
     <div class="card" style="padding:12px 18px;">
       <div class="player-line" style="border:none; align-items:center;">
@@ -640,10 +657,36 @@ function renderRoster() {
         <span style="display:flex; align-items:center; gap:10px;">
           <span class="meta">${p.position || ""}</span>
           ${toggleBtn}
+          ${removeBtn}
         </span>
       </div>
     </div>`;
   }).join("");
+
+  el.querySelectorAll("[data-remove-player]").forEach(btn => {
+    btn.onclick = async () => {
+      const pid = btn.dataset.removePlayer;
+      const player = players.find(p => p.id === pid);
+      if (!confirm(`Remove ${player?.full_name} from the roster? This also clears their RSVPs and squad spots.`)) return;
+
+      // clean any squads that reference this player before deleting the profile
+      // (selected_player_ids / positions aren't foreign-key constrained, so this
+      // won't cascade automatically)
+      for (const squad of squads) {
+        const stillNamed = (squad.selected_player_ids || []).filter(id => id !== pid);
+        const cleanedPositions = { ...squad.positions };
+        Object.entries(cleanedPositions).forEach(([slot, val]) => {
+          if (val === pid) delete cleanedPositions[slot];
+        });
+        if (stillNamed.length !== (squad.selected_player_ids || []).length || JSON.stringify(cleanedPositions) !== JSON.stringify(squad.positions)) {
+          await sb.from("squads").update({ selected_player_ids: stillNamed, positions: cleanedPositions }).eq("id", squad.id);
+        }
+      }
+
+      await sb.from("profiles").delete().eq("id", pid);
+      await refreshAll();
+    };
+  });
 
   el.querySelectorAll("[data-toggle-coach]").forEach(btn => {
     btn.onclick = async () => {
